@@ -3,12 +3,15 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
+import { Button, CircularProgress, Container, Typography, Radio } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 
 export default function ClientePage({ initialData }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
     if (!initialData && session) {
@@ -31,75 +34,75 @@ export default function ClientePage({ initialData }) {
     router.push('/clientesAlta');
   };
 
-  if (!session) {
-    return <p>Loading...</p>;
+  const handleRadioChange = (id) => {
+    setSelectedId(id);
+  };
+
+  if (status === 'loading') {
+    return <Typography>Loading...</Typography>;
   }
+
+  if (!session) {
+    return <Typography>You need to be logged in to view this page.</Typography>;
+  }
+
+  const columns = [
+    {
+      field: 'select',
+      headerName: '',
+      width: 50,
+      renderCell: (params) => (
+        <Radio
+          checked={selectedId === params.id}
+          onChange={() => handleRadioChange(params.id)}
+          value={params.id}
+          name="radio-button-demo"
+          inputProps={{ 'aria-label': params.id }}
+        />
+      ),
+    },
+    { field: 'apellido', headerName: 'Apellido', width: 150 },
+    { field: 'nombre', headerName: 'Nombre', width: 150 },
+    { field: 'cuit', headerName: 'CUIT', width: 150 },
+    { field: 'telefono', headerName: 'Teléfono', width: 150 },
+    { field: 'condicionAFIP', headerName: 'Condición AFIP', width: 150 },
+    { field: 'condicionIIBB', headerName: 'Condición IIBB', width: 150 },
+  ];
+
+  const rows = data
+    ? data.map((cliente) => ({
+        id: cliente.id,
+        apellido: cliente.apellido,
+        nombre: cliente.nombre,
+        cuit: cliente.cuit,
+        telefono: cliente.telefono,
+        condicionAFIP: cliente.condicionAFIP,
+        condicionIIBB: cliente.condicionIIBB,
+      }))
+    : [];
 
   return (
     <Layout>
-      <h1>Clientes</h1>
-      <button id="alta-cliente" onClick={handleAddClient}>
-        Agregar cliente
-      </button>
-      {loading ? (
-        <p>Loading...</p>
-      ) : data && data.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Apellido</th>
-              <th>Nombre</th>
-              <th>CUIT</th>
-              <th>Telefono</th>
-              <th>Condición AFIP</th>
-              <th>Condición IIBB</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((cliente) => (
-              <tr key={cliente.id}>
-                <td>{cliente.id}</td>
-                <td>{cliente.apellido}</td>
-                <td>{cliente.nombre}</td>
-                <td>{cliente.cuit}</td>
-                <td>{cliente.telefono}</td>
-                <td>{cliente.condicionAFIP}</td>
-                <td>{cliente.condicionIIBB}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p>No hay clientes registrados</p>
-      )}
-      <style jsx>{`
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 1rem;
-        }
-        th, td {
-          border: 1px solid #ddd;
-          padding: 8px;
-        }
-        th {
-          background-color: #f2f2f2;
-          text-align: left;
-        }
-        button {
-          margin-bottom: 1rem;
-          padding: 0.5rem 1rem;
-          background-color: #0070f3;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-        button:hover {
-          background-color: #005bb5;
-        }
-      `}</style>
+      <Container>
+        <Typography variant="h4" gutterBottom>
+          Clientes
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleAddClient}
+          sx={{ marginBottom: 2 }}
+        >
+          Agregar cliente
+        </Button>
+        {loading ? (
+          <CircularProgress />
+        ) : (
+          <div style={{ height: 400, width: '100%' }}>
+            <DataGrid rows={rows} columns={columns} pageSize={5} />
+          </div>
+        )}
+      </Container>
     </Layout>
   );
 }
@@ -125,6 +128,6 @@ export async function getServerSideProps(context) {
   }
 
   return {
-    props: { session, initialData },
+    props: { initialData },
   };
 }
